@@ -119,20 +119,10 @@ def add_to_mask(range_list, rad, short_angle):
 
             if not mask_added:
                 range_list[2].append(short_angle)
-
-    return range_list
-
-
-
-
-
-
-
     else:  # this is one of the first blocked angles - a range can't be formed yet
         range_list[2].append(short_angle)
-        return range_list
 
-
+    return range_list
 
 
 
