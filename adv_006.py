@@ -29,7 +29,7 @@ def value_in_discontinous(check, range_list):  # looks for values in a list of d
     return result
 
 
-def add_to_mask(range_list, rad, short_angle):  #
+def add_to_mask(range_list, rad, short_angle):
     prev_rad = rad - 1
     if prev_rad is not 0:
         prev_min_angle = (1/(prev_rad*4))
@@ -50,27 +50,77 @@ def add_to_mask(range_list, rad, short_angle):  #
         else:  # we don't have matching discrete angles
             for range_pair in range_list[1]:
                 if range_pair[0] < range_pair[1]:  # need to check if the range includes zero
-                    # Check if the lower bracket is captured within an existing masked range
-                    if (range_pair[0] <= bracket_low <= range_pair[1]) and (range_pair[1] < short_angle):
-                        range_list[1].remove(range_pair)
-                        range_list[1].append((range_pair[0], short_angle))  # expand this range pair upwards
-                        mask_added = True
-                    # Check if the upper bracket is captured within an existing masked range
-                    elif (range_pair[0] <= bracket_high <= range_pair[1]) and (range_pair[0] > short_angle):
-                        range_list[1].remove(range_pair)
-                        range_list[1].append((short_angle, range_pair[1]))  # expand this range pair downwards
-                        mask_added = True
+                    if bracket_high > bracket_low:  # need to check if the test angle includes zero
+                        # Check if the lower bracket is captured within an existing masked range
+                        if (range_pair[0] <= bracket_low <= range_pair[1]) and (range_pair[1] < short_angle):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((range_pair[0], short_angle))  # expand this range pair upwards
+                            mask_added = True
+                        # Check if the upper bracket is captured within an existing masked range
+                        elif (range_pair[0] <= bracket_high <= range_pair[1]) and (range_pair[0] > short_angle):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((short_angle, range_pair[1]))  # expand this range pair downwards
+                            mask_added = True
+                    else:  # test range includes zero
+                        # range_pair doens't include zero, bracket_low/high does include zero.
+                        # bracket_low is larger than bracket high and short angle in 4th quadrant
+                        if (range_pair[0] <= bracket_low <= range_pair[1]) and (range_pair[1] < short_angle) \
+                                and (short_angle > 0.75):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((range_pair[0], short_angle))  # expand this range pair upwards
+                            mask_added = True
+                        # bracket_low is larger than bracket high and short angle in 1st quadrant
+                        elif (range_pair[0] <= bracket_low <= range_pair[1]) and (range_pair[1] > short_angle) \
+                                and (range_pair[0] > short_angle) and (short_angle < 0.25):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((range_pair[0], short_angle))  # expand this range pair upwards
+                            mask_added = True
+                        # bracket_low is larger than bracket high and short angle in 4th quadrant
+                        elif (range_pair[0] <= bracket_high <= range_pair[1]) and (range_pair[0] < short_angle) \
+                                and (short_angle > 0.75):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((short_angle, range_pair[1]))  # expand this range pair downwards
+                            mask_added = True
+                        # bracket_low is larger than bracket high and short angle in 1st quadrant
+                        elif (range_pair[0] <= bracket_high <= range_pair[1]) and (range_pair[0] > short_angle) \
+                                and (range_pair[1] > short_angle) and (short_angle < 0.25):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((short_angle, range_pair[1]))  # expand this range pair downwards
+                            mask_added = True
+
                 else:  # range pair includes zero (eg from the range from 0.75 to 0.25)
-                    # Check if the lower bracket is captured within an existing masked range
-                    if (bracket_low >= range_pair[0]) \
-                            and 0 <= bracket_low <= (range_pair[1])\
-                            and (range_pair[1] < short_angle):
-                        range_list[1].remove(range_pair)
-                        range_list[1].append((range_pair[0], short_angle))  # expand this range pair upwards
-                        mask_added = True
+                    if bracket_high > bracket_low:  # need to check if the test angle includes zero
+                        # Check if the lower bracket is captured within an existing masked range
+                        if (0 <= bracket_low <= range_pair[1]) or (range_pair[0] <= bracket_low <= 1) \
+                                and (short_angle > range_pair[1]):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((range_pair[0], short_angle))  # expand this range pair upwards
+                            mask_added = True
+                        # Check if the upper bracket is captured within an existing masked range
+                        elif (0 <= bracket_high <= range_pair[1]) or (range_pair[0] <= bracket_high <= 1) \
+                                and (short_angle < range_pair[0]):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((short_angle, range_pair[1]))  # expand this range pair downwards
+                            mask_added = True
+                    else:  # bracket_pair also contain zero
+                        # range_pair includes zero, bracket_low/high includes zero.
+                        # bracket_low is larger than bracket high and short angle in 1st quadrant
+                        if (range_pair[0] <= bracket_low <= 1) or (0 <= bracket_low <= range_pair[1]) \
+                                and (range_pair[1] < short_angle) and (short_angle < 0.25):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((range_pair[0], short_angle))  # expand this range pair upwards
+                            mask_added = True
+                        # bracket_low is larger than bracket high and short angle in 4th quadrant
+                        elif (range_pair[0] <= bracket_high <= 1) or (0 <= bracket_high <= range_pair[1]) \
+                                and (range_pair[0] > short_angle) and (short_angle > 0.75):
+                            range_list[1].remove(range_pair)
+                            range_list[1].append((short_angle, range_pair[1]))  # expand this range pair downwards
+                            mask_added = True
 
             if not mask_added:
                 range_list[2].append(short_angle)
+
+    return range_list
 
 
 
@@ -127,97 +177,39 @@ for pair in coords:
 grid = [[None]*grid_xmax for i in range(grid_ymax)]
 
 radius = 0
-
-for point in points_size:
-    # noinspection PyTypeChecker
-    grid[point[0]][point[1]] = [point, 0]
+active_regions = True
+while active_regions:
     radius += 1
-    d = radius*4
-    for r in range(d):  # We iterate over points on the Manhatten circle
-        angle = 2*pi*(r/d)
-        if angle not in points_size[point][1]:
-            pass
-        x_delta = round(cos(angle)*radius)
-        y_delta = round(sin(angle)*radius)
-        check_point = add_tuple(point, (x_delta, y_delta))
-        # noinspection PyTypeChecker
-        if grid[check_point[0]][check_point[1]] is None:
-            grid[check_point[0]][check_point[1]] = [point, radius]
-            points_size[point][0] += 1
-        elif grid[check_point[0]][check_point[1]][1] > radius:  # probably shouldn't happen...
-            grid[check_point[0]][check_point[1]] = [point, radius]
-            points_size[point][0] += 1
-        elif grid[check_point[0]][check_point[1]][1] == radius:  # we've just bumped into another region
+    active_regions = False
+    for point in points_size:
+        if not points_size[point][1][0]:
+            active_regions = True
             # noinspection PyTypeChecker
-            grid[check_point[0]][check_point[1]] = ['#', 0]
-            points_size[point][1].append(r/d)
-        elif grid[check_point[0]][check_point[1]][1] < radius:  # we've just crossed into another region
-            points_size[point][1] = add_to_mask(points_size[point][1], radius, r)
-            pass  # need to add this angle to list of masked angles
-
-
-
-
-
-        # print('(%f, %f)' % (xd, yd))
-        #p1 = x*1, y*0
-        #p2 = x*0, y*1
-        #p3 = x*-1, y*0
-        #p4 = x*0, y*-1
-
-
-
-# results = {}
-# for v in range(len(coords)):
-#     for w in range(len(coords)):
-#         if v != w:
-#             dist = taxi_distance(coords[v], coords[w])
-#             if coords[v] not in results:
-#                 results[coords[v]] = [dist]
-#             else:
-#                 results[coords[v]].append(dist)
-#
-# for key in results:
-#     results[key] = mean(results[key])
-
-
-# for key in results:
-#     if (xmax == key[0]) or (xmin == key[0]):
-#         results[key] = 0.0
-#     elif (ymax == key[1]) or (ymin == key[1]):
-#         results[key] = 0.0
-#
-# print(max(results.items(),key=lambda x: x[1]))
-
-
-# for x in range(grid_size):
-#     if x % 100 == 0:
-#         print(x)
-#     for y in range(grid_size):
-#         dist_list = []
-#         for coord in coords:
-#             z = taxi_distance((x, y), coord)
-#             if (x, y) == coord:
-#                 grid[x][y] = 'X'
-#             else:
-#                 dist_list.append({coord: z})
-#         dist_list.sort(key=lambda x: max(x.values()))
-#         # dist_list.reverse()
-#         if list(dist_list[0].values())[0] == list(dist_list[1].values())[0]:
-#             grid[x][y] = '.'
-#         elif results[list(dist_list[0].keys())[0]] == 0.0:
-#             grid[x][y] = '.'
-#         else:
-#             grid[x][y] = list(dist_list[0].keys())[0]
-#             coords_size[list(dist_list[0].keys())[0]] += 1
-#
-# print(max(coords_size.items(), key=lambda x: x[1]))
-# print(coords_size[(94,355)])
-
-
-# print(results)
-#A#Bxx
-####Cccccc
-#ddDxxxx
-#eeEeee
-#eeeee
+            grid[point[0]][point[1]] = [point, 0]
+            d = radius * 4
+            for r in range(d):  # We iterate over points on the Manhatten circle
+                angle = 2 * pi * (r / d)
+                if angle not in points_size[point][1]:
+                    pass
+                x_delta = round(cos(angle) * radius)
+                y_delta = round(sin(angle) * radius)
+                check_point = add_tuple(point, (x_delta, y_delta))
+                # noinspection PyTypeChecker
+                if grid[check_point[0]][check_point[1]] is None:
+                    # update grid and points list
+                    grid[check_point[0]][check_point[1]] = [point, radius]
+                    points_size[point][0] += 1
+                elif grid[check_point[0]][check_point[1]][1] > radius:  # probably shouldn't happen...
+                    # remove incorrect point
+                    offending = grid[check_point[0]][check_point[1]][0]
+                    points_size[offending][0] -= 1
+                    # update grid and points list
+                    grid[check_point[0]][check_point[1]] = [point, radius]
+                    points_size[point][0] += 1
+                elif grid[check_point[0]][check_point[1]][1] == radius:  # we've just bumped into another region
+                    # noinspection PyTypeChecker
+                    grid[check_point[0]][check_point[1]] = ['#', 0]
+                    points_size[point][1] = add_to_mask(points_size[point][1], radius, r)
+                elif grid[check_point[0]][check_point[1]][1] < radius:  # we've just crossed into another region
+                    points_size[point][1] = add_to_mask(points_size[point][1], radius, r)
+                    pass  # need to add this angle to list of masked angles
